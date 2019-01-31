@@ -1,0 +1,24 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "ailispaw/barge"
+  config.ssh.insert_key = false
+
+  # 必要ならポートを追加する
+  config.vm.network "forwarded_port", guest: 22, host: 22, id: "ssh"
+  config.vm.network "forwarded_port", guest: 80, host: 80, id: "web"
+
+  config.vm.network "private_network", ip: "192.168.33.10"
+
+  #init (git + docker + locale + tools)
+  config.vm.provision "shell", path: './provision_root.sh'
+  
+  #sync dir
+  config.vm.synced_folder "./dockerspace", "/home/bargee/dockerspace" ,create: true
+  config.vm.synced_folder "./workspace", "/home/bargee/workspace" ,create: true
+  config.vm.synced_folder "./shells", "/home/bargee/shells" ,create: true
+  config.vm.synced_folder "./data", "/home/bargee/data" ,create: true
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = false
+    vb.memory = "5120"
+  end
+
+end

@@ -1,0 +1,63 @@
+  #CONFIG
+  GIT_USER = "@@"
+  GIT_EMAIL = "@@"
+  HOMEDIR="/home"
+  WIN_WORKSPACE="/develop"
+  WIN_DOCKERSPACE="/develop"
+  DOCKER_HOST_IP='192.168.33.10'
+  IS_DEBUG=true
+  XDEBUG_PORT='9001'
+  XDEBUG_KEY='xdebug'
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+  config.ssh.insert_key = false
+  config.vbguest.auto_update =  true
+
+  # 必要ならポートを追加する
+  config.vm.network "forwarded_port", guest: 22, host: 2222, id: "ssh" , auto_correct: true
+  config.vm.network "forwarded_port", guest: 80, host: 80, id: "web" , auto_correct: true
+  config.vm.network "forwarded_port", guest: 443, host: 10443
+  #config.vm.network "forwarded_port", guest: 8011, host: 8011, auto_correct: true
+  #config.vm.network "forwarded_port", guest: 8021, host: 8021, auto_correct: true
+  #config.vm.network "forwarded_port", guest: 8022, host: 8022, auto_correct: true
+
+  ### db用
+  #mysql 
+  #config.vm.network "forwarded_port", guest: 3306, host: 13306
+  #config.vm.network "forwarded_port", guest: 5433, host: 5433
+  #config.vm.network "forwarded_port", guest: 5434, host: 5434
+
+  config.vm.network "private_network", id: "default-network",ip: DOCKER_HOST_IP
+
+  #初期設定
+  config.vm.provision "shell", path: './provision_root.sh'
+  config.vm.provision "shell", path: './provision_root_sshd.sh'
+  
+  # swapの設定はメモリが足りない場合などにやる
+  #config.vm.provision "shell", path: './provision_root_swap.sh'
+
+  #ローカルとファイル同期
+  config.vm.synced_folder WIN_DOCKERSPACE, HOMEDIR+"/dockerspace" ,create: true
+  config.vm.synced_folder WIN_WORKSPACE, HOMEDIR+"/workspace" ,create: true
+  config.vm.synced_folder "./shells", HOMEDIR+"/shells" ,create: true
+  config.vm.synced_folder "./data", HOMEDIR+"/data" ,create: true
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = false
+    vb.memory = "4096"
+  end
+  
+  config.vm.provision :shell do |git|
+    git.env = {:GIT_USER => GIT_USER, :GIT_EMAIL => GIT_EMAIL}
+    git.path = './provision_root_git.sh'
+  end
+  
+  # #php laradock setup
+  # config.vm.provision "shell" do |laradocshell|
+  #   laradocshell.env= {:HOMEDIR => HOMEDIR,:DOCKER_HOST_IP => DOCKER_HOST_IP,:IS_DEBUG => IS_DEBUG,:XDEBUG_PORT => XDEBUG_PORT,:XDEBUG_KEY => XDEBUG_KEY}
+  #   laradocshell.path= './shells/laradock/build-laradock.sh'
+  # end
+
+  # #laradockのプロセス起動
+  # config.vm.provision "shell", run: "always",path: './shells/laradock/docker-run.sh'
+end
